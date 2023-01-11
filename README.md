@@ -93,14 +93,15 @@ Generate training data
 ----------------------
 
 ```sh
-python -m cellscanner generate-cellscanner-pairs \
-    --cellscanner-config cellscanner.yaml \
-    --celldb-config celldb.yaml \
-    --on-duplicate-cell take_first \
-    --max-delay 60 \
-    --limit-colocated 1000 \
-    --limit-dislocated 1000 \
-    --write-pairs data/cellscanner_pairs.db
+python -m cellscanner \
+        --cellscanner-config cellscanner.yaml \
+        --celldb-config celldb.yaml \
+        --on-duplicate-cell take-first \
+    generate-cellscanner-pairs \
+        --max-delay 60 \
+        --limit-colocated 1000 \
+        --limit-dislocated 1000 \
+        --write-pairs data/cellscanner_pairs.db
 ```
 
 Choose parameter values as desired.
@@ -108,6 +109,8 @@ Choose parameter values as desired.
 The `on-duplicate-cell` policy is relevant if the cell database has two or
 more hits for the same cell. This may mean that the cell database is
 inconsistant.
+
+Use extension `.csv` instead of `.db` to get CSV output.
 
 
 Test case: julia

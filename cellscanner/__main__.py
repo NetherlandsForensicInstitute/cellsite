@@ -2,13 +2,10 @@ import os
 import warnings
 from contextlib import contextmanager
 from functools import partial
-from itertools import chain
 
 import click
 
 import celldb
-import cellsite
-import colocation
 from celldb import PgDatabase
 from cellscanner.cellscanner_measurements import CellscannerMeasurementSet
 from cellsite.serialization import write_measurements_to_csv
@@ -20,7 +17,7 @@ from cellsite.util import script_helper
 
 @contextmanager
 def _open_database(cellscanner_config: str, celldb_config: str, on_duplicate_cell: str):
-    on_duplicate = getattr(celldb.duplicate_policy, on_duplicate_cell)
+    on_duplicate = getattr(celldb.duplicate_policy, on_duplicate_cell.replace('-', '_'))
     with script_helper.get_database_connection(celldb_config) as dbcon:
         db = PgDatabase(dbcon, on_duplicate=on_duplicate)
         with script_helper.get_database_connection(cellscanner_config) as cscon:
@@ -44,7 +41,7 @@ def _open_database(cellscanner_config: str, celldb_config: str, on_duplicate_cel
 )
 @click.option(
     "--on-duplicate-cell",
-    metavar="exception|warn|take_first|drop",
+    metavar="exception|warn|take-first|drop",
     help="policy when finding multiple results for a single cell-id",
     default="drop",
 )
