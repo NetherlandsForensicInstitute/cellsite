@@ -1,0 +1,14 @@
+# global file patterns
+*~
+*.log
+*.log.0
+__pycache__
+
+# local project files
+/local.yaml
+
+# other
+/.idea
+/build
+/data
+/venv
