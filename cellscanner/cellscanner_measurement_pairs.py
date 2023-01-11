@@ -2,7 +2,7 @@ import logging
 from typing import Iterable, Tuple
 
 from celldb import CellDatabase
-from cellscanner.cellscanner_util import create_cell
+from cellscanner.cellscanner_util import resolve_cell
 from cellsite import CellMeasurement
 from colocation.measurement_pair import CellMeasurementPair
 
@@ -25,9 +25,9 @@ class CellscannerMeasurementPairGenerator:
     def _fetch_rows(self, rows, is_colocated: bool):
         for row in rows:
             timestamp1 = row[0]
-            ci1, geo1 = create_cell(self.cell_resolver, timestamp1, *row[1:6])
+            ci1, geo1 = resolve_cell(self.cell_resolver, timestamp1, *row[1:6])
             timestamp2 = row[6]
-            ci2, geo2 = create_cell(self.cell_resolver, timestamp2, *row[7:12])
+            ci2, geo2 = resolve_cell(self.cell_resolver, timestamp2, *row[7:12])
             if geo1 is not None and geo2 is not None:
                 measurement1 = CellMeasurement(timestamp1, ci1, geo=geo1)
                 measurement2 = CellMeasurement(timestamp2, ci2, geo=geo2)

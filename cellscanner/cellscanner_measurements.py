@@ -1,11 +1,12 @@
+import datetime
 import logging
 import sys
 from abc import ABC
-from typing import Iterable, Tuple, List, Sequence, Iterator, Optional
+from typing import Iterable, Tuple, List, Sequence, Iterator, Optional, Set
 
 from celldb import CellDatabase
-from cellscanner.cellscanner_util import create_cell
-from cellsite import CellMeasurement, WgsPoint, Angle
+from cellscanner.cellscanner_util import resolve_cell
+from cellsite import CellMeasurement, WgsPoint, Angle, CellIdentity
 from cellsite.measurement import CellMeasurementSet
 from cellsite.properties import LocationInfo
 
@@ -66,11 +67,26 @@ class CellscannerMeasurementSet(CellMeasurementSet):
             cur.execute(q, qargs)
             return [row[0] for row in cur]
 
+    def get_cells(self) -> Set[CellIdentity]:
+        cell_fields = ["cell.radio", "cell.mcc", "cell.mnc", "cell.area", "cell.cid"]
+        qselect = f"DISTINCT {','.join(cell_fields)}"
+        q, qargs = self._build_query(qselect)
+        with self._con.cursor() as cur:
+            cur.execute(q, qargs)
+            return set([CellIdentity.create(radio=radio, mcc=mcc, mnc=mnc, lac=lac, ci=ci, eci=ci) for radio, mcc, mnc, lac, ci in cur])
+
     def select_by_track(self, *track_names: str) -> CellMeasurementSet:
         return self._create_augmented_set(selected_tracks=track_names)
 
     def select_by_device(self, *device_names: str) -> CellMeasurementSet:
         return self._create_augmented_set(selected_devices=device_names)
+
+    def select_by_timestamp(self, timestamp_from: datetime.datetime,
+                            timestamp_to: datetime.datetime) -> CellMeasurementSet:
+        raise NotImplemented()
+
+    def select_by_cell(self, *cells: CellIdentity) -> CellMeasurementSet:
+        raise NotImplemented()
 
     def limit(self, count: int) -> CellMeasurementSet:
         return self._create_augmented_set(limit=count)
@@ -112,8 +128,8 @@ class CellscannerMeasurementSet(CellMeasurementSet):
         qlimit = ""
         if self._limit is not None:
             qlimit = f"LIMIT {self._limit}"
-            if qorder == "":
-                qorder = "ORDER BY random()"
+            #if qorder == "":
+            #    qorder = "ORDER BY random()"
 
         q = f"""
                 SELECT {qselect}
@@ -155,7 +171,7 @@ class CellscannerMeasurementSet(CellMeasurementSet):
                 lac,
                 ci,
             ) in cur:
-                cell, cellinfo = create_cell(
+                cell, cellinfo = resolve_cell(
                     self.cell_resolver, timestamp, radio, mcc, mnc, lac, ci
                 )
                 locationinfo = LocationInfo(

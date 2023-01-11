@@ -37,10 +37,15 @@ class CellIdentity:
             return LTECell(mcc, mnc, eci)
         elif radio is not None:
             raise ValueError(f"unsupported radio technology: {radio}")
-        elif eci is not None:
-            return LTECell(mcc, mnc, eci)  # guess LTE
-        elif lac is not None or ci is not None:
-            return CellGlobalIdentity(mcc, mnc, lac, ci)  # guess GSM/UMTS
+        elif eci is not None and (ci is None or lac is None):
+            return LTECell(mcc, mnc, eci)  # insufficient info to identify GSM/UMTS --> guess LTE
+        elif ci is not None and lac is not None and eci is None:
+            return CellGlobalIdentity(mcc, mnc, lac, ci)  # insufficient info for LTE/NR --> guess GSM/UMTS
+        elif eci is not None and ci is lac is not None or ci is not None:
+            if ci > 0xffff:
+                return LTECell(mcc, mnc, eci)  # invalid ci for GSM/UMTS --> guess LTE
+            else:
+                return CellGlobalIdentity(mcc, mnc, lac, ci)  # guess GSM/UMTS
         else:
             return CellIdentity(mcc, mnc)  # guess it's a cell
 

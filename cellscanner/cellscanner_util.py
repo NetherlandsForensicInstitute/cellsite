@@ -8,7 +8,7 @@ from cellsite import CellIdentity
 LOG = logging.getLogger(__name__)
 
 
-def create_cell(
+def resolve_cell(
     cell_resolver, timestamp, radio, mcc, mnc, lac, ci
 ) -> Tuple[CellIdentity, Optional[dict]]:
     if radio == "GSM" or radio == "UMTS":

@@ -32,7 +32,7 @@ def _open_database(cellscanner_config: str, celldb_config: str, on_duplicate_cel
     "--cellscanner-config",
     metavar="PATH",
     type=click.Path(exists=True),
-    required=False,
+    required=True,
     help="Comma-separated list of YAML files with database credentials",
 )
 @click.option(
