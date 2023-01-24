@@ -15,7 +15,7 @@ def parse_measurements(measurements):
             id=i,
             timestamp=parse_time(m[0]),
             track=m[1],
-            device=m[2],
+            sensor=m[2],
             cell=CellIdentity.create("GSM", 1, 1, lac=1, ci=m[3]),
         )
         for i, m in enumerate(measurements)

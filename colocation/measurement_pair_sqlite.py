@@ -18,9 +18,9 @@ class SqliteCellMeasurementPairSet(SqliteCollection, MeasurementPairSet):
         )
 
     @property
-    def device_names(self) -> Set[str]:
-        return self.get_unique_values("left_msrmnt.device").union(
-            self.get_unique_values("right_msrmnt.device")
+    def sensor_names(self) -> Set[str]:
+        return self.get_unique_values("left_msrmnt.sensor").union(
+            self.get_unique_values("right_msrmnt.sensor")
         )
 
     def select_by_left_timestamp(
@@ -30,11 +30,11 @@ class SqliteCellMeasurementPairSet(SqliteCollection, MeasurementPairSet):
             **{"left_msrmnt.timestamp": (timestamp_from, timestamp_to)}
         )
 
-    def select_by_left_device(self, device_name: str) -> MeasurementPairSet:
-        return self.select_by_value(**{"left_msrmnt.device": device_name})
+    def select_by_left_sensor(self, sensor_name: str) -> MeasurementPairSet:
+        return self.select_by_value(**{"left_msrmnt.sensor": sensor_name})
 
-    def select_by_right_device(self, device_name: str) -> MeasurementPairSet:
-        return self.select_by_value(**{"right_msrmnt.device": device_name})
+    def select_by_right_sensor(self, sensor_name: str) -> MeasurementPairSet:
+        return self.select_by_value(**{"right_msrmnt.sensor": sensor_name})
 
     def select_by_delay(
         self, delay_min_secs: float, delay_max_secs: float

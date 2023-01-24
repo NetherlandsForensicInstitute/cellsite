@@ -82,7 +82,7 @@ class DataWithBackgroundCells(
         def create_background_pairs(ref, min_real_delay):
             for other in self.background_measurements.select_by_track(
                 ref.track
-            ).select_by_device(ref.device):
+            ).select_by_sensor(ref.sensor):
                 if (
                     abs((ref.timestamp - other.timestamp).total_seconds())
                     >= min_real_delay

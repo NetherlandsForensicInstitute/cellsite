@@ -1,13 +1,17 @@
 import os
+import sqlite3
 import warnings
 from contextlib import contextmanager
 from functools import partial
+from typing import Optional
 
 import click
 
 import celldb
 from celldb import PgDatabase
-from cellscanner.cellscanner_measurements import CellscannerMeasurementSet
+from cellscanner.database import CellscannerDatabase
+from .cellscanner_file import CellscannerFile
+from .cellscanner_measurements import CellscannerMeasurementSet
 from cellsite.serialization import write_measurements_to_csv
 from colocation import MeasurementPairSet
 from colocation.file import write_pairs_to_file
@@ -16,12 +20,25 @@ from cellsite.util import script_helper
 
 
 @contextmanager
-def _open_database(cellscanner_config: str, celldb_config: str, on_duplicate_cell: str):
-    on_duplicate = getattr(celldb.duplicate_policy, on_duplicate_cell.replace('-', '_'))
-    with script_helper.get_database_connection(celldb_config) as dbcon:
-        db = PgDatabase(dbcon, on_duplicate=on_duplicate)
-        with script_helper.get_database_connection(cellscanner_config) as cscon:
-            yield cscon, db
+def _open_database(
+    cellscanner_config: str,
+    drop_cellscanner_schema: bool,
+    celldb_config: Optional[str] = None,
+    on_duplicate_cell: Optional[str] = None,
+):
+    with script_helper.get_database_connection(
+        cellscanner_config, drop_schema=drop_cellscanner_schema
+    ) as cscon:
+        if celldb_config is not None:
+            assert on_duplicate_cell is not None
+            on_duplicate = getattr(
+                celldb.duplicate_policy, on_duplicate_cell.replace("-", "_")
+            )
+            with script_helper.get_database_connection(celldb_config) as dbcon:
+                db = PgDatabase(dbcon, on_duplicate=on_duplicate)
+                yield cscon, db
+        else:
+            yield cscon, None
 
 
 @click.group()
@@ -33,10 +50,15 @@ def _open_database(cellscanner_config: str, celldb_config: str, on_duplicate_cel
     help="Comma-separated list of YAML files with database credentials",
 )
 @click.option(
+    "--drop-schema",
+    is_flag=True,
+    help="drop Cellscanner database schema before doing anything else",
+)
+@click.option(
     "--celldb-config",
     metavar="PATH",
     type=click.Path(exists=True),
-    required=True,
+    required=False,
     help="Comma-separated list of YAML files with database credentials",
 )
 @click.option(
@@ -46,11 +68,21 @@ def _open_database(cellscanner_config: str, celldb_config: str, on_duplicate_cel
     default="drop",
 )
 @click.pass_context
-def cli(ctx, cellscanner_config: str, celldb_config: str, on_duplicate_cell: str):
+def cli(
+    ctx,
+    cellscanner_config: str,
+    drop_schema: bool,
+    celldb_config: str,
+    on_duplicate_cell: str,
+):
     ctx.ensure_object(dict)
     script_helper.setup_logging("cellscanner.log", verbosity_offset=0)
     ctx.obj["open_database"] = partial(
-        _open_database, cellscanner_config, celldb_config, on_duplicate_cell
+        _open_database,
+        cellscanner_config,
+        drop_schema,
+        celldb_config,
+        on_duplicate_cell,
     )
 
 
@@ -95,8 +127,21 @@ def summarize(ctx):
     with ctx.obj["open_database"]() as (cellscanner_connection, cell_database):
         measurements = CellscannerMeasurementSet(cellscanner_connection, cell_database)
         for track in measurements.track_names:
-            for device in measurements.select_by_track(track).device_names:
-                print(f"{track} {device}")
+            click.echo(f"TRACK: {track}")
+            track_measurements = measurements.select_by_track(track)
+            for sensor in track_measurements.sensor_names:
+                click.echo(f"+-SENSOR: {sensor}")
+                sensor_measurements = track_measurements.select_by_sensor(sensor)
+                first_measurement = next(
+                    iter(sensor_measurements.sort_by("timestamp").limit(1))
+                )
+                last_measurement = next(
+                    iter(sensor_measurements.sort_by("timestamp").limit(1))
+                )
+                click.echo(
+                    f"| +time span: {first_measurement.timestamp} -- {last_measurement.timestamp}"
+                )
+                click.echo(f"| +number of measurements: {len(sensor_measurements)}")
 
 
 @cli.command(help="combines cellscanner measurements into pairs")
@@ -129,6 +174,7 @@ def generate_cellscanner_pairs(
     ctx, max_delay: int, limit_colocated: int, limit_dislocated: int, write_pairs: str
 ):
     with ctx.obj["open_database"]() as (cellscanner_connection, cell_database):
+        assert cell_database is not None, "a cell database is required"
         pair_generator = CellscannerMeasurementPairGenerator(
             cellscanner_connection, cell_database
         )
@@ -143,6 +189,36 @@ def generate_cellscanner_pairs(
         if os.path.exists(write_pairs):
             os.remove(write_pairs)
         write_pairs_to_file(write_pairs, colocated_pairs + dislocated_pairs)
+
+
+@cli.command(help="loads Cellscanner files into a postgres database")
+@click.option(
+    "--tag",
+    required=False,
+    help="drop schema before doing anything else",
+)
+@click.argument(
+    "filename",
+    metavar="PATH",
+    nargs=-1,
+)
+@click.pass_context
+def file_to_postgres(ctx, filename: str, tag: Optional[str] = None):
+    with ctx.obj["open_database"]() as (cellscanner_connection, cell_database):
+        db = CellscannerDatabase(cellscanner_connection)
+        db.create_tables()
+        for path in filename:
+            assert os.path.exists(path), f"file not found: {path}"
+            with sqlite3.connect(path) as source_connection:
+                try:
+                    csfile = CellscannerFile(source_connection)
+                    install_id = csfile.get_install_id()
+                    device_handle = db.add_device(install_id, tag)
+                    db.add_locationinfo(device_handle, csfile.get_locationinfo())
+                    db.add_cellinfo(device_handle, csfile.get_cellinfo())
+                except Exception as e:
+                    print(f"{filename}: error: {e}")
+                    raise
 
 
 if __name__ == "__main__":

@@ -14,7 +14,7 @@ def measurements2id(measurements: Iterable[CellMeasurement]) -> List[int]:
 class CellMeasurementTest(unittest.TestCase):
     def test_instantiation(self):
         set0 = [
-            ("2000-01-01 01:01", "track1", "device1", 1),
+            ("2000-01-01 01:01", "track1", "sensor1", 1),
         ]
         list0 = parse_measurements(set0)
         set0 = CellMeasurementSet.from_measurements(list0)
@@ -22,18 +22,18 @@ class CellMeasurementTest(unittest.TestCase):
 
     def test_item_operations(self):
         set0 = [
-            ("2000-01-01 01:01", "track1", "device1", 1),
-            ("2000-01-01 01:02", "track1", "device1", 1),
-            ("2000-01-01 02:01", "track1", "device1", 1),
-            ("2000-01-02 01:01", "track1", "device1", 1),
-            ("2000-01-02 02:02", "track1", "device1", 1),
-            ("2000-01-02 03:02", "track1", "device1", 1),
+            ("2000-01-01 01:01", "track1", "sensor1", 1),
+            ("2000-01-01 01:02", "track1", "sensor1", 1),
+            ("2000-01-01 02:01", "track1", "sensor1", 1),
+            ("2000-01-02 01:01", "track1", "sensor1", 1),
+            ("2000-01-02 02:02", "track1", "sensor1", 1),
+            ("2000-01-02 03:02", "track1", "sensor1", 1),
         ]
         set1 = [
-            ("2000-01-01 01:01", "track1", "device1", 1),
-            ("2000-01-01 01:02", "track1", "device1", 1),
-            ("2000-01-01 02:01", "track1", "device1", 1),
-            ("2000-01-02 01:01", "track1", "device1", 1),
+            ("2000-01-01 01:01", "track1", "sensor1", 1),
+            ("2000-01-01 01:02", "track1", "sensor1", 1),
+            ("2000-01-01 02:01", "track1", "sensor1", 1),
+            ("2000-01-02 01:01", "track1", "sensor1", 1),
         ]
 
         measurements0 = CellMeasurementSet.create()
@@ -53,8 +53,8 @@ class CellMeasurementTest(unittest.TestCase):
 
     def test_set_operations(self):
         set0 = [
-            ("2000-01-01 01:01", "track1", "device1", 1),
-            ("2000-01-01 01:02", "track1", "device1", 1),
+            ("2000-01-01 01:01", "track1", "sensor1", 1),
+            ("2000-01-01 01:02", "track1", "sensor1", 1),
         ]
 
         measurements = parse_measurements(set0)
@@ -90,10 +90,10 @@ class CellMeasurementTest(unittest.TestCase):
 
     def test_select(self):
         set0 = [
-            ("2000-01-01 01:01", "track1", "device1", 1),
-            ("2000-01-01 01:02", "track1", "device2", 2),
-            ("2000-01-01 02:01", "track1", "device3", 3),
-            ("2000-01-01 02:01", "track1", "device4", 4),
+            ("2000-01-01 01:01", "track1", "sensor1", 1),
+            ("2000-01-01 01:02", "track1", "sensor2", 2),
+            ("2000-01-01 02:01", "track1", "sensor3", 3),
+            ("2000-01-01 02:01", "track1", "sensor4", 4),
         ]
 
         set0 = SqliteCellMeasurementSet(parse_measurements(set0))
@@ -125,39 +125,39 @@ class CellMeasurementTest(unittest.TestCase):
         )
         self.assertEqual(
             1,
-            len(set0.select_by_device("device1")),
-            "number of measurements in device1",
+            len(set0.select_by_sensor("sensor1")),
+            "number of measurements in sensor1",
         )
         self.assertEqual(
             1,
-            len(track1.select_by_device("device1")),
-            "number of measurements in track1/device1",
+            len(track1.select_by_sensor("sensor1")),
+            "number of measurements in track1/sensor1",
         )
         self.assertEqual(
             0,
-            len(set0.select_by_track("track2").select_by_device("device1")),
-            "number of measurements in track2/device1",
+            len(set0.select_by_track("track2").select_by_sensor("sensor1")),
+            "number of measurements in track2/sensor1",
         )
         self.assertEqual(
             0,
-            len(track1.select_by_device("device1").select_by_device("device2")),
-            "number of measurements in track2/device1/device2",
+            len(track1.select_by_sensor("sensor1").select_by_sensor("sensor2")),
+            "number of measurements in track2/sensor1/sensor2",
         )
         self.assertEqual(
             2,
-            len(track1.select_by_device("device1", "device2")),
-            "number of measurements in track1/device1 and device2",
+            len(track1.select_by_sensor("sensor1", "sensor2")),
+            "number of measurements in track1/sensor1 and sensor2",
         )
         self.assertEqual(
             2,
-            len(track1.select_by_device("device1", "device2").sort_by("timestamp")),
-            "number of sorted measurements in track1/device1 and device2",
+            len(track1.select_by_sensor("sensor1", "sensor2").sort_by("timestamp")),
+            "number of sorted measurements in track1/sensor1 and sensor2",
         )
 
     def test_type_conflict(self):
         set0 = [
-            ("2000-01-01 01:01", "track1", "device1", 1),
-            ("2000-01-01 01:02", "track1", "device1", 1),
+            ("2000-01-01 01:01", "track1", "sensor1", 1),
+            ("2000-01-01 01:02", "track1", "sensor1", 1),
         ]
 
         items = parse_measurements(set0)

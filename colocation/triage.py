@@ -79,7 +79,7 @@ def select_pair_from_interval_by_right_cell_rarity(
             yield candidates[0][0]
 
 
-def select_pair_from_interval_and_devices_by_right_cell_rarity(
+def select_pair_from_interval_and_sensors_by_right_cell_rarity(
     pairs: MeasurementPairSet,
     background_measurements: CellMeasurementSet,
     intervals: Sequence[Tuple[datetime.datetime, datetime.datetime]],
@@ -87,7 +87,7 @@ def select_pair_from_interval_and_devices_by_right_cell_rarity(
 ):
     """
     Same ase `select_pair_from_interval_by_right_cell_rarity`, except that it selects a pair for each combination
-    of two devices.
+    of two sensors.
 
     @param pairs: the list of pairs to be filtered
     @param intervals: the intervals to group pairs by
@@ -95,38 +95,38 @@ def select_pair_from_interval_and_devices_by_right_cell_rarity(
     @param progress_bar: show progress bar
     @return: at most one pair for each interval
     """
-    for right_device in progress_bar(pairs.device_names):
-        background_measurements_for_device = background_measurements.select_by_device(
-            right_device
+    for right_sensor in progress_bar(pairs.sensor_names):
+        background_measurements_for_sensor = background_measurements.select_by_sensor(
+            right_sensor
         )
-        # sub select by right device
-        pairs_for_right_device = pairs.select_by_right_device(right_device)
+        # sub select by right sensor
+        pairs_for_right_sensor = pairs.select_by_right_sensor(right_sensor)
 
         # if there are no pairs, don´t bother
-        if len(pairs_for_right_device) == 0:
+        if len(pairs_for_right_sensor) == 0:
             continue
 
-        cell_frequencies = get_cell_frequencies(background_measurements_for_device)
+        cell_frequencies = get_cell_frequencies(background_measurements_for_sensor)
 
-        for left_device in pairs.device_names:
-            # sub select by left device
-            pairs_for_devices = pairs_for_right_device.select_by_left_device(
-                left_device
+        for left_sensor in pairs.sensor_names:
+            # sub select by left sensor
+            pairs_for_sensors = pairs_for_right_sensor.select_by_left_sensor(
+                left_sensor
             )
 
             # if there are no pairs, don´t bother
-            if len(pairs_for_devices) == 0:
+            if len(pairs_for_sensors) == 0:
                 continue
 
             for interval in intervals:
-                # all pairs for the devices within the interval are candidates
-                candidates = pairs_for_devices.select_by_left_timestamp(*interval)
+                # all pairs for the sensors within the interval are candidates
+                candidates = pairs_for_sensors.select_by_left_timestamp(*interval)
 
                 # reduce the cell frequencies by the counts in the current interval, because they should be excluded
                 cell_frequencies_for_interval = dict(cell_frequencies)
                 for (
                     measurement
-                ) in background_measurements_for_device.select_by_timestamp(*interval):
+                ) in background_measurements_for_sensor.select_by_timestamp(*interval):
                     cell_frequencies_for_interval[measurement.cell] -= 1
 
                 # assign the right cell frequency to every pair

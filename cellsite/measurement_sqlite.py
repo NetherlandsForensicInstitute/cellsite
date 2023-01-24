@@ -45,8 +45,8 @@ class SqliteCellMeasurementSet(SqliteCollection, CellMeasurementSet):
         return self.get_unique_values("track")
 
     @property
-    def device_names(self) -> Set[str]:
-        return self.get_unique_values("device")
+    def sensor_names(self) -> Set[str]:
+        return self.get_unique_values("sensor")
 
     def get_cells(self) -> Set[CellIdentity]:
         return set(
@@ -77,8 +77,8 @@ class SqliteCellMeasurementSet(SqliteCollection, CellMeasurementSet):
     def select_by_track(self, *track_names: str) -> CellMeasurementSet:
         return self.select_by_values(track=track_names)
 
-    def select_by_device(self, *device_names: str) -> CellMeasurementSet:
-        return self.select_by_values(device=device_names)
+    def select_by_sensor(self, *sensor_names: str) -> CellMeasurementSet:
+        return self.select_by_values(sensor=sensor_names)
 
     def select_by_cell(self, *cells: CellIdentity) -> CellMeasurementSet:
         # NOTE: this breaks if the same cell identifier is used in different radio networks (which should not happen anyway)

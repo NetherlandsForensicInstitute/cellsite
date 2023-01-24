@@ -56,16 +56,6 @@ registers the serving cell as well as the GPS coordinates of the device. The
 following assumes that you have collected measurements using Cellscanner, or
 have access to such a dataset.
 
-For importing cellscanner data, Use the `cellscanner` repository. (TODO: move this to the `cellsite` repo.)
-
-```sh
-git clone git@github.com:NetherlandsForensicInstitute/cellscanner.git
-cd cellscanner/scripts
-virtualenv -p python3 venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
 Prepare the configuration file `cellscanner.yaml`. Optionally, use the
 credentials from the previously created `cellsite.yaml`.
 
@@ -73,19 +63,17 @@ credentials from the previously created `cellsite.yaml`.
 nano cellscanner.yaml
 ```
 
-Cellscanner produces Sqlite files. Use the `load.py` script to import these
-data into postgres.
+Cellscanner produces Sqlite files. Import these data into postgres.
 
 ```sh
-./load.py data/cellscanner/*.sqlite3
+python -m cellscanner --cellscanner-config cellscanner.yaml file-to-postgres data/cellscanner/*.sqlite3
 ```
-
-The Cellscanner repository is only required for running the `load.py` script.
 
 You may want to inspect the contents of the measurement database.
 
 ```sh
-python -m cellscanner --celldb-config cellsite.yaml --cellscanner-config cellsite.yaml export-measurements --limit 1000
+python -m cellscanner --cellscanner-config cellscanner.yaml summarize
+python -m cellscanner --celldb-config cellsite.yaml --cellscanner-config cellscanner.yaml export-measurements --limit 1000
 ```
 
 

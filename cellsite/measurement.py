@@ -1,7 +1,7 @@
 from __future__ import annotations
 import datetime
 from abc import abstractmethod
-from typing import Sequence, Iterable, List, Sized, Set
+from typing import Iterable, List, Sized, Set
 
 from .cell_identity import CellIdentity
 from .item import Item
@@ -97,11 +97,11 @@ class CellMeasurementSet(Iterable[CellMeasurement], Sized):
 
     @property
     @abstractmethod
-    def device_names(self) -> List[str]:
+    def sensor_names(self) -> List[str]:
         """
-        Devices referenced in this set.
+        Sensors referenced in this set.
 
-        @return: a list of device names
+        @return: a list of sensor names
         """
         raise NotImplementedError
 
@@ -122,12 +122,12 @@ class CellMeasurementSet(Iterable[CellMeasurement], Sized):
         raise NotImplementedError
 
     @abstractmethod
-    def select_by_device(self, *device_names: str) -> CellMeasurementSet:
+    def select_by_sensor(self, *sensor_names: str) -> CellMeasurementSet:
         """
-        Select measurements by their device.
+        Select measurements by their sensor.
 
-        @param device_names: the names of the selected devices
-        @return: an augmented version of this set with only measurements that refer to one of the selected devices
+        @param sensor_names: the names of the selected sensors
+        @return: an augmented version of this set with only measurements that refer to one of the selected sensors
         """
         raise NotImplementedError
 

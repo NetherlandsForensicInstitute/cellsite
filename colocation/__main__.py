@@ -33,7 +33,7 @@ from . import (
 )
 
 
-PAIRS_SORT_KEY = '"left_msrmnt.timestamp", "left_msrmnt.device", "right_msrmnt.timestamp", "right_msrmnt.device"'
+PAIRS_SORT_KEY = '"left_msrmnt.timestamp", "left_msrmnt.sensor", "right_msrmnt.timestamp", "right_msrmnt.sensor"'
 
 
 class ValidationResults(
@@ -265,7 +265,7 @@ def cli(ctx):
 
 
 @cli.command(
-    help="combines subsequent measurements from different devices into pairs of measurements"
+    help="combines subsequent measurements from different sensors into pairs of measurements"
 )
 @click.option(
     "--measurements-file",
@@ -371,7 +371,7 @@ def filter_pairs(
                 background_measurements
             )
             pairs = MeasurementPairSet.from_pairs(
-                triage.select_pair_from_interval_and_devices_by_right_cell_rarity(
+                triage.select_pair_from_interval_and_sensors_by_right_cell_rarity(
                     pairs=pairs,
                     intervals=intervals,
                     background_measurements=background,

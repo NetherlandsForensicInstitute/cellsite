@@ -95,7 +95,7 @@ class MeasurementPairSet(Iterable[CellMeasurementPair], Sized):
 
     @property
     @abstractmethod
-    def device_names(self):
+    def sensor_names(self):
         raise NotImplementedError
 
     @abstractmethod
@@ -112,11 +112,11 @@ class MeasurementPairSet(Iterable[CellMeasurementPair], Sized):
         raise NotImplementedError
 
     @abstractmethod
-    def select_by_left_device(self, device_name: str) -> MeasurementPairSet:
+    def select_by_left_sensor(self, sensor_name: str) -> MeasurementPairSet:
         raise NotImplementedError
 
     @abstractmethod
-    def select_by_right_device(self, device_name: str) -> MeasurementPairSet:
+    def select_by_right_sensor(self, sensor_name: str) -> MeasurementPairSet:
         raise NotImplementedError
 
     @abstractmethod
@@ -188,9 +188,9 @@ class MeasurementPairSet(Iterable[CellMeasurementPair], Sized):
         """
         Constructs a set of pairs from random cell measurements.
 
-        Only measurements of devices in the same track are eligible for pairing.
+        Only measurements of sensors in the same track are eligible for pairing.
 
-        @param measurements: measurements with a `track` and a `device` attribute
+        @param measurements: measurements with a `track` and a `sensor` attribute
         @return: a set of measurement pairs
         """
         pair_fields = {"is_colocated": False}
@@ -212,15 +212,15 @@ class MeasurementPairSet(Iterable[CellMeasurementPair], Sized):
         within_track: bool = True,
     ) -> MeasurementPairSet:
         """
-        Constructs a set of pairs from cell measurements of colocated devices.
+        Constructs a set of pairs from cell measurements of colocated sensors.
 
         Measurements are assumed to have a `track` attribute (e.g. a vehicle or user or something else with a geographic
-        position) and a `device` attribute (i.e. the source of the measurement). Devices in the same track are said to
-        be colocated. For each two devices, measurement pairs are constructed by ordering measurements by `timestamp`
-        and returning each two consecutive measurements as a pair. If `within_track` is `True`, only devices of the
+        position) and a `sensor` attribute (i.e. the source of the measurement). Sensors in the same track are said to
+        be colocated. For each two sensors, measurement pairs are constructed by ordering measurements by `timestamp`
+        and returning each two consecutive measurements as a pair. If `within_track` is `True`, only sensors of the
         same track are paired.
 
-        @param measurements: measurements with a `track` and a `device` attribute
+        @param measurements: measurements with a `track` and a `sensor` attribute
         @param within_track:
         @return: a set of measurement pairs
         """
@@ -275,20 +275,20 @@ def _get_lag_pairs(
     for item in items:
         if prev is not None:
             yield sorted(
-                [prev, item], key=lambda m: m.device
-            )  # sort the pair by device name
+                [prev, item], key=lambda m: m.sensor
+            )  # sort the pair by sensor name
         prev = item
 
 
 def pair_sequential_measurements(
     measurements: CellMeasurementSet, sort_key: str, pair_fields
 ) -> Iterator[CellMeasurementPair]:
-    for device1, device2 in combinations(measurements.device_names, 2):
-        device_measurements = measurements.select_by_device(device1, device2).sort_by(
+    for sensor1, sensor2 in combinations(measurements.sensor_names, 2):
+        sensor_measurements = measurements.select_by_sensor(sensor1, sensor2).sort_by(
             sort_key
         )
-        for pair in _get_lag_pairs(device_measurements):
-            if pair[0].device == pair[1].device:
-                continue  # pair does not qualify for comparison because it is from the same device
+        for pair in _get_lag_pairs(sensor_measurements):
+            if pair[0].sensor == pair[1].sensor:
+                continue  # pair does not qualify for comparison because it is from the same sensor
             pair_extra = pair_fields(*pair) if callable(pair_fields) else pair_fields
             yield CellMeasurementPair(*pair, **pair_extra)

@@ -1,7 +1,5 @@
 import datetime
 import logging
-import sys
-from abc import ABC
 from typing import Iterable, Tuple, List, Sequence, Iterator, Optional, Set
 
 from celldb import CellDatabase
@@ -20,7 +18,7 @@ class CellscannerMeasurementSet(CellMeasurementSet):
         cell_resolver: CellDatabase,
         max_accuracy_m: Optional[int] = None,
         tracks: Optional[List[str]] = None,
-        devices: Optional[List[str]] = None,
+        sensors: Optional[List[str]] = None,
         sort_key: Optional[str] = None,
         limit: Optional[int] = None,
     ):
@@ -29,7 +27,7 @@ class CellscannerMeasurementSet(CellMeasurementSet):
         self.cell_resolver = cell_resolver
         self._max_accuracy_m = max_accuracy_m
         self._selected_tracks = tracks
-        self._selected_devices = devices
+        self._selected_sensors = sensors
         self._sort_key = sort_key
         self._limit = limit
 
@@ -40,7 +38,7 @@ class CellscannerMeasurementSet(CellMeasurementSet):
         augmentations = {
             "max_accuracy_m": self._max_accuracy_m,
             "tracks": self._selected_tracks,
-            "devices": self._selected_devices,
+            "sensors": self._selected_sensors,
             "sort_key": self._sort_key,
             "limit": self._limit,
         }
@@ -60,7 +58,7 @@ class CellscannerMeasurementSet(CellMeasurementSet):
             return [row[0] for row in cur]
 
     @property
-    def device_names(self) -> List[str]:
+    def sensor_names(self) -> List[str]:
         qselect = "DISTINCT cell.subscription"
         q, qargs = self._build_query(qselect)
         with self._con.cursor() as cur:
@@ -73,16 +71,24 @@ class CellscannerMeasurementSet(CellMeasurementSet):
         q, qargs = self._build_query(qselect)
         with self._con.cursor() as cur:
             cur.execute(q, qargs)
-            return set([CellIdentity.create(radio=radio, mcc=mcc, mnc=mnc, lac=lac, ci=ci, eci=ci) for radio, mcc, mnc, lac, ci in cur])
+            return set(
+                [
+                    CellIdentity.create(
+                        radio=radio, mcc=mcc, mnc=mnc, lac=lac, ci=ci, eci=ci
+                    )
+                    for radio, mcc, mnc, lac, ci in cur
+                ]
+            )
 
     def select_by_track(self, *track_names: str) -> CellMeasurementSet:
-        return self._create_augmented_set(selected_tracks=track_names)
+        return self._create_augmented_set(tracks=track_names)
 
-    def select_by_device(self, *device_names: str) -> CellMeasurementSet:
-        return self._create_augmented_set(selected_devices=device_names)
+    def select_by_sensor(self, *sensor_names: str) -> CellMeasurementSet:
+        return self._create_augmented_set(sensors=sensor_names)
 
-    def select_by_timestamp(self, timestamp_from: datetime.datetime,
-                            timestamp_to: datetime.datetime) -> CellMeasurementSet:
+    def select_by_timestamp(
+        self, timestamp_from: datetime.datetime, timestamp_to: datetime.datetime
+    ) -> CellMeasurementSet:
         raise NotImplemented()
 
     def select_by_cell(self, *cells: CellIdentity) -> CellMeasurementSet:
@@ -108,11 +114,11 @@ class CellscannerMeasurementSet(CellMeasurementSet):
             qargs.extend(self._selected_tracks)
             qargs.extend(self._selected_tracks)
 
-        if self._selected_devices is not None:
+        if self._selected_sensors is not None:
             qwhere.append(
-                f"subscription in ({','.join(['%s'] * len(self._selected_devices))})"
+                f"subscription in ({','.join(['%s'] * len(self._selected_sensors))})"
             )
-            qargs.extend(self._selected_devices)
+            qargs.extend(self._selected_sensors)
 
         if self._max_accuracy_m is not None:
             qwhere.append("accuracy <= %s")
@@ -128,14 +134,14 @@ class CellscannerMeasurementSet(CellMeasurementSet):
         qlimit = ""
         if self._limit is not None:
             qlimit = f"LIMIT {self._limit}"
-            #if qorder == "":
-            #    qorder = "ORDER BY random()"
+            if qorder == "":
+                qorder = "ORDER BY random()"
 
         q = f"""
                 SELECT {qselect}
                 FROM locationinfo l
                     JOIN device ON l.device_id = device.id
-                    JOIN cellinfo cell ON cell.device_id = device.id
+                    JOIN cellinfo cell ON cell.device_id = device.id AND cell.date_start <= l.timestamp AND l.timestamp < cell.date_end
                 WHERE {' AND '.join(qwhere)}
                 {qorder}
                 {qlimit}
@@ -159,7 +165,7 @@ class CellscannerMeasurementSet(CellMeasurementSet):
             for (
                 timestamp,
                 track,
-                device,
+                sensor,
                 latitude,
                 longitude,
                 accuracy,
@@ -185,7 +191,7 @@ class CellscannerMeasurementSet(CellMeasurementSet):
                     timestamp,
                     cell=cell,
                     track=track,
-                    device=device,
+                    sensor=sensor,
                     geo=cellinfo,
                     device_geo=locationinfo,
                 )
